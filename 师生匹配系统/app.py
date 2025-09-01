@@ -6,55 +6,26 @@ from collections import defaultdict
 import hashlib
 
 
-# 密码验证函数
-def check_password():
-    """密码验证函数"""
-
-    def password_entered():
-        """检查输入的密码是否正确"""
-        if st.session_state["password"] == st.secrets["password"]:
-            st.session_state["password_correct"] = True
-            del st.session_state["password"]  # 不存储密码
-        else:
-            st.session_state["password_correct"] = False
-
-    if "password_correct" not in st.session_state:
-        # 第一次运行，显示密码输入框
-        st.text_input(
-            "密码", type="password", on_change=password_entered, key="password"
-        )
-        st.error("请输入密码访问系统")
-        return False
-    elif not st.session_state["password_correct"]:
-        # 密码不正确，显示输入框和错误信息
-        st.text_input(
-            "密码", type="password", on_change=password_entered, key="password"
-        )
-        st.error("密码不正确，请重试")
-        return False
-    else:
-        # 密码正确
-        return True
-
-
-# 如果使用streamlit secrets管理密码，需要在.streamlit/secrets.toml中添加：
-# password = "your_hashed_password"
-# 或者使用简单的硬编码密码（不推荐用于生产环境）
+# 密码验证函数 - 简化版本
 def simple_password_check():
-    """简单的密码验证（用于演示）"""
-    # 默认密码是 "password123"，在生产环境中应该使用更安全的方式
+    """简单的密码验证"""
+    # 默认密码
     DEFAULT_PASSWORD = "123321456"
 
-    if "authenticated" not in st.session_state:
+    # 初始化会话状态
+    if 'authenticated' not in st.session_state:
         st.session_state.authenticated = False
+        st.session_state.password_attempt = False
 
     if not st.session_state.authenticated:
         password = st.text_input("请输入系统访问密码:", type="password", key="login_password")
-        if st.button("登录"):
+        if st.button("登录", key="login_btn"):
             if password == DEFAULT_PASSWORD:
                 st.session_state.authenticated = True
+                st.session_state.password_attempt = False
                 st.rerun()
             else:
+                st.session_state.password_attempt = True
                 st.error("密码不正确，请重试")
         return st.session_state.authenticated
     return True
@@ -138,31 +109,32 @@ def input_project_info():
 
     col1, col2 = st.columns(2)
     with col1:
-        project_name = st.text_input("项目名称", "2024春季机器学习项目")
-        project_manager = st.text_input("项目负责人", "张老师")
+        project_name = st.text_input("项目名称", "2024春季机器学习项目", key="project_name")
+        project_manager = st.text_input("项目负责人", "张老师", key="project_manager")
     with col2:
-        project_duration = st.selectbox("项目周期", ["1个月", "2个月", "3个月", "半年", "全年"])
-        max_participants = st.number_input("最大参与人数", min_value=5, max_value=100, value=20)
+        project_duration = st.selectbox("项目周期", ["1个月", "2个月", "3个月", "半年", "全年"], key="project_duration")
+        max_participants = st.number_input("最大参与人数", min_value=5, max_value=100, value=20, key="max_participants")
 
     st.subheader("项目时间段")
     col_date1, col_date2 = st.columns(2)
     with col_date1:
-        project_start = st.date_input("项目开始日期", date(2024, 3, 1))
+        project_start = st.date_input("项目开始日期", date(2024, 3, 1), key="project_start")
     with col_date2:
-        project_end = st.date_input("项目结束日期", date(2024, 6, 30))
+        project_end = st.date_input("项目结束日期", date(2024, 6, 30), key="project_end")
 
     st.subheader("每周活动时间")
     col_time1, col_time2 = st.columns(2)
     with col_time1:
-        weekly_start = st.time_input("每周开始时间", time(14, 0))
+        weekly_start = st.time_input("每周开始时间", time(14, 0), key="weekly_start")
     with col_time2:
-        weekly_end = st.time_input("每周结束时间", time(17, 0))
+        weekly_end = st.time_input("每周结束时间", time(17, 0), key="weekly_end")
 
     # 选择活动日
     week_days = st.multiselect(
         "选择活动日",
         ["周一", "周二", "周三", "周四", "周五", "周六", "周日"],
-        default=["周二", "周四"]
+        default=["周二", "周四"],
+        key="week_days"
     )
 
     project_info = {
@@ -569,6 +541,10 @@ def main():
     # 添加退出登录按钮
     if st.sidebar.button("退出登录"):
         st.session_state.authenticated = False
+        st.session_state.current_project = None
+        st.session_state.students_added = 0
+        st.session_state.mentors_added = 0
+        st.session_state.system = MatchingSystem(method='hybrid')
         st.rerun()
 
 
